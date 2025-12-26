@@ -1,13 +1,11 @@
 class Game {
-    constructor(ctx) {
+    constructor(ctx, canvas) {
         this.ctx = ctx;
-        this.tableTiles = [];
-        this.tileSize = 64;
-        this.tileMapWidth = 8;
-        this.tileMapHeight = 6;
+        this.canvas = canvas;
 
+        // Load images
         this.tableImg = new Image();
-        this.tableImg.src = 'assets/sprites/tableTile.png';
+        this.tableImg.src = 'assets/sprites/table.png';
 
         this.ballImg = new Image();
         this.ballImg.src = 'assets/sprites/ball.png';
@@ -16,36 +14,43 @@ class Game {
         this.shadowImg.src = 'assets/sprites/shadow.png';
 
         this.paddleImg = new Image();
-        this.paddleFrames = ['assets/sprites/paddle1.png','assets/sprites/paddle2.png'];
-        this.currentFrame = 0;
-        this.frameTimer = 0;
-        this.frameInterval = 0.2;
+        this.paddleImg.src = 'assets/sprites/paddle.png';
 
+        // Game objects
         this.ball = null;
         this.player = null;
         this.ai = null;
         this.camera = null;
+
+        // Table bounds
+        this.tableBounds = {
+            xMin: 50,
+            xMax: canvas.width - 50,
+            yMin: 50,
+            yMax: canvas.height - 50
+        };
+
+        // Score
         this.score = { player: 0, ai: 0 };
+
+        // Paddle animation
+        this.paddleFrames = [this.paddleImg.src];
+        this.currentFrame = 0;
+        this.frameTimer = 0;
+        this.frameInterval = 0.2;
     }
 
-    init(canvas) {
-        // Tilemap setup
-        for (let y = 0; y < this.tileMapHeight; y++) {
-            this.tableTiles[y] = [];
-            for (let x = 0; x < this.tileMapWidth; x++) {
-                this.tableTiles[y][x] = { x: x * this.tileSize, y: y * this.tileSize };
-            }
-        }
+    init() {
+        const tableCenterX = (this.tableBounds.xMin + this.tableBounds.xMax) / 2;
+        const tableCenterY = (this.tableBounds.yMin + this.tableBounds.yMax) / 2;
 
-        window.tableBounds = { xMin: 0, xMax: this.tileMapWidth * this.tileSize, yMin: 0, yMax: this.tileMapHeight * this.tileSize };
+        this.ball = new Ball(tableCenterX, tableCenterY, this.ballImg, this.shadowImg, this.tableBounds);
 
-        this.ball = new Ball(this.tileMapWidth * this.tileSize / 2, this.tileMapHeight * this.tileSize / 2, this.ballImg, this.shadowImg, tableBounds);
-
-        this.player = new Paddle(this.tileMapWidth * this.tileSize / 2, this.tileMapHeight * this.tileSize - 30, this.paddleImg, false, 0.8);
-        this.ai = new Paddle(this.tileMapWidth * this.tileSize / 2, 30, this.paddleImg, true, 0.7);
+        this.player = new Paddle(tableCenterX, this.tableBounds.yMax - 50, this.paddleImg, false, 0.8);
+        this.ai = new Paddle(tableCenterX, this.tableBounds.yMin + 50, this.paddleImg, true, 0.7);
         this.ai.target = this.ball;
 
-        this.camera = new Camera(canvas);
+        this.camera = new Camera(this.canvas);
         this.camera.target = this.ball;
     }
 
@@ -54,11 +59,14 @@ class Game {
         this.player.update(dt);
         this.ai.update(dt);
 
+        // Ball hits paddles
         this.ball.hitByPaddle(this.player);
         this.ball.hitByPaddle(this.ai);
 
+        // Camera follows ball
         this.camera.update();
 
+        // Paddle animation (even if single frame)
         this.frameTimer += dt;
         if (this.frameTimer > this.frameInterval) {
             this.currentFrame = (this.currentFrame + 1) % this.paddleFrames.length;
@@ -66,12 +74,15 @@ class Game {
             this.frameTimer = 0;
         }
 
-        if (this.ball.pos.y < tableBounds.yMin) { this.score.player++; this.ballReset(); }
-        if (this.ball.pos.y > tableBounds.yMax) { this.score.ai++; this.ballReset(); }
+        // Check for scoring
+        if (this.ball.pos.y < this.tableBounds.yMin) { this.score.player++; this.ballReset(); }
+        if (this.ball.pos.y > this.tableBounds.yMax) { this.score.ai++; this.ballReset(); }
     }
 
     ballReset() {
-        this.ball.pos = { x: this.tileMapWidth * this.tileSize / 2, y: this.tileMapHeight * this.tileSize / 2 };
+        const tableCenterX = (this.tableBounds.xMin + this.tableBounds.xMax) / 2;
+        const tableCenterY = (this.tableBounds.yMin + this.tableBounds.yMax) / 2;
+        this.ball.pos = { x: tableCenterX, y: tableCenterY };
         this.ball.z = 0;
         this.ball.vel = { x: (Math.random() - 0.5) * 8, y: (Math.random() - 0.5) * 8 };
         this.ball.zVel = 0;
@@ -81,28 +92,32 @@ class Game {
     draw() {
         const ctx = this.ctx;
         ctx.save();
+
+        // Camera transform
         this.camera.apply(ctx);
 
-        // Draw tilemap table
-        for (let y = 0; y < this.tileMapHeight; y++) {
-            for (let x = 0; x < this.tileMapWidth; x++) {
-                const tile = this.tableTiles[y][x];
-                ctx.drawImage(this.tableImg, tile.x, tile.y, this.tileSize, this.tileSize);
-            }
-        }
+        // Draw table
+        ctx.drawImage(this.tableImg, this.tableBounds.xMin, this.tableBounds.yMin, 
+                      this.tableBounds.xMax - this.tableBounds.xMin, 
+                      this.tableBounds.yMax - this.tableBounds.yMin);
 
+        // Draw paddles
         this.player.draw(ctx);
         this.ai.draw(ctx);
 
+        // Draw ball trail
         this.drawBallTrail(ctx);
+
+        // Draw ball
         this.ball.draw(ctx);
 
         ctx.restore();
 
+        // Draw score
         ctx.fillStyle = "white";
         ctx.font = "24px sans-serif";
         ctx.fillText(`Player: ${this.score.player}`, 20, 30);
-        ctx.fillText(`AI: ${this.score.ai}`, canvas.width - 120, 30);
+        ctx.fillText(`AI: ${this.score.ai}`, this.canvas.width - 120, 30);
     }
 
     drawBallTrail(ctx) {
@@ -112,7 +127,9 @@ class Game {
             ctx.globalAlpha = alpha;
             const offsetX = this.ball.vel.x * i * 0.05;
             const offsetY = this.ball.vel.y * i * 0.05;
-            ctx.drawImage(this.ball.sprite, this.ball.pos.x - this.ball.radius - offsetX, this.ball.pos.y - this.ball.radius - this.ball.z - offsetY, this.ball.radius * 2, this.ball.radius * 2);
+            ctx.drawImage(this.ball.sprite, this.ball.pos.x - this.ball.radius - offsetX, 
+                          this.ball.pos.y - this.ball.radius - this.ball.z - offsetY, 
+                          this.ball.radius * 2, this.ball.radius * 2);
         }
         ctx.globalAlpha = 1;
     }
