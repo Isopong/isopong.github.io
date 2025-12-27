@@ -1,23 +1,19 @@
 const canvas = document.getElementById("gameCanvas");
-canvas.width = 800;
-canvas.height = 600;
 const ctx = canvas.getContext("2d");
 
-const keys = {};
-window.addEventListener('keydown', e => keys[e.key] = true);
-window.addEventListener('keyup', e => keys[e.key] = false);
+canvas.width = 960;
+canvas.height = 540;
 
-const game = new Game(ctx);
-game.init(canvas);
+const game = new Game(ctx, canvas);
+game.init();
 
-let lastTime = performance.now();
+let lastTime = 0;
 
-function loop(timestamp) {
-    const dt = (timestamp - lastTime) / 1000;
-    lastTime = timestamp;
+function loop(time) {
+    const dt = (time - lastTime) / 1000;
+    lastTime = time;
 
-    ctx.fillStyle = "#87CEEB"; // clear background
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     game.update(dt);
     game.draw();
