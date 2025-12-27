@@ -5,79 +5,67 @@ class Ball {
         this.bounds = bounds;
 
         this.pos = { x, y };
-        this.vel = { x: 6 * (Math.random() > 0.5 ? 1 : -1), y: 7 };
-        this.radius = 10;
+        this.vel = { x: 8, y: 0 };
+        this.radius = 8;
 
-        // Advanced physics
         this.z = 0;
         this.zVel = 0;
-        this.gravity = 25;
-        this.spin = { x: 0, y: 0 };
-        this.airDrag = 0.995;
+        this.gravity = 30;
+
+        this.spin = 0;
     }
 
     update(dt) {
-        // Air physics
-        this.vel.x += this.spin.x * dt;
-        this.vel.y += this.spin.y * dt;
-
-        this.vel.x *= this.airDrag;
-        this.vel.y *= this.airDrag;
+        this.vel.y += this.spin * dt;
+        this.vel.y *= 0.99;
 
         this.pos.x += this.vel.x;
         this.pos.y += this.vel.y;
 
-        // Vertical physics
         this.zVel -= this.gravity * dt;
         this.z += this.zVel;
 
         if (this.z < 0) {
             this.z = 0;
-            this.zVel *= -0.6; // bounce damping
+            this.zVel *= -0.6;
         }
 
-        // Wall collisions
-        if (this.pos.x < this.bounds.xMin || this.pos.x > this.bounds.xMax) {
-            this.vel.x *= -1;
-            this.spin.x *= 0.5;
+        if (this.pos.y < this.bounds.top || this.pos.y > this.bounds.bottom) {
+            this.vel.y *= -1;
+            this.spin *= 0.5;
         }
     }
 
     hitByPaddle(paddle) {
-        const dx = this.pos.x - paddle.pos.x;
-        const dy = this.pos.y - paddle.pos.y;
-        const dist = Math.hypot(dx, dy);
+        const dx = Math.abs(this.pos.x - paddle.pos.x);
+        const dy = Math.abs(this.pos.y - paddle.pos.y);
 
-        if (dist < this.radius + paddle.width / 2 && this.z < 12) {
-            const angle = dx / paddle.width;
-            const power = paddle.swingSpeed * 10;
+        if (dx < this.radius + paddle.width / 2 &&
+            dy < paddle.height / 2 &&
+            this.z < 12) {
 
-            this.vel.x += angle * power;
-            this.vel.y = paddle.isAI ? 6 : -6;
-
-            this.zVel = Math.abs(paddle.swingSpeed) * 8;
-            this.spin.x = angle * 0.2;
-            this.spin.y = paddle.swingSpeed * 0.1;
+            this.vel.x *= -1.05;
+            this.vel.y += paddle.swingSpeed * 0.2;
+            this.zVel = Math.abs(paddle.swingSpeed) * 4;
+            this.spin = paddle.swingSpeed * 0.02;
         }
     }
 
     draw(ctx) {
-        // Shadow
         ctx.globalAlpha = 0.3;
         ctx.drawImage(
             this.shadow,
-            this.pos.x - this.radius,
-            this.pos.y - this.radius + 6,
+            Math.round(this.pos.x - this.radius),
+            Math.round(this.pos.y + 6),
             this.radius * 2,
             this.radius
         );
         ctx.globalAlpha = 1;
 
-        // Ball
         ctx.drawImage(
             this.sprite,
-            this.pos.x - this.radius,
-            this.pos.y - this.radius - this.z,
+            Math.round(this.pos.x - this.radius),
+            Math.round(this.pos.y - this.radius - this.z),
             this.radius * 2,
             this.radius * 2
         );
