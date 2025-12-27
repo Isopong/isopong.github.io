@@ -4,15 +4,19 @@ const ctx = canvas.getContext("2d");
 canvas.width = 960;
 canvas.height = 540;
 
+// no more fucking smoothing in the pngs
+ctx.imageSmoothingEnabled = false;
+
 const game = new Game(ctx, canvas);
 game.init();
 
 let lastTime = 0;
 
 function loop(time) {
-    const dt = (time - lastTime) / 1000;
+    const dt = Math.min((time - lastTime) / 1000, 0.033);
     lastTime = time;
 
+    ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     game.update(dt);
