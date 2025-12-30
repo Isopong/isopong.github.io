@@ -1,37 +1,52 @@
 class Paddle {
-    constructor(x, y, sprite, isAI = false, skill = 1) {
-        this.sprite = sprite;
-        this.isAI = isAI;
-        this.skill = skill;
+    constructor(side, table) {
+        this.table = table;
 
-        this.pos = { x, y };
-        this.width = 16;
-        this.height = 48;
+        this.width = 20;
+        this.height = 60;
 
-        this.swingSpeed = 0;
-        this.target = null;
+        this.side = side === "left" ? 1 : -1;
+
+        this.x = side === "left"
+            ? table.x + 20
+            : table.x + table.width - 20;
+
+        this.y = table.y + table.height / 2;
+        this.prevY = this.y;
+        this.vy = 0;
+
+        // ✅ Proper image object
+        this.sprite = new Image();
+        this.sprite.src = "assets/sprites/paddle.png";
     }
 
     update(dt) {
-        if (this.isAI && this.target) {
-            const error = (Math.random() - 0.5) * (1 - this.skill) * 60;
-            const targetY = this.target.pos.y + error;
+        this.prevY = this.y;
 
-            this.swingSpeed = (targetY - this.pos.y) * 0.15 * this.skill;
-            this.pos.y += this.swingSpeed;
-        } else {
-            window.onmousemove = e => {
-                const rect = document.body.getBoundingClientRect();
-                this.pos.y = e.clientY - rect.top;
-            };
+        // TEMP AI / test movement
+        if (window.game && this.side === -1) {
+            const targetY = window.game.ball.y;
+            const diff = targetY - this.y;
+            this.y += Math.max(Math.min(diff * 0.08, 6), -6);
         }
+
+        // Velocity (used for hit strength)
+        this.vy = this.y - this.prevY;
+
+        // Clamp inside table
+        const top = this.table.y + this.height / 2;
+        const bottom = this.table.y + this.table.height - this.height / 2;
+        this.y = Math.max(top, Math.min(bottom, this.y));
     }
 
     draw(ctx) {
+        // ✅ Safe draw — only if image is ready
+        if (!this.sprite.complete) return;
+
         ctx.drawImage(
             this.sprite,
-            Math.round(this.pos.x - this.width / 2),
-            Math.round(this.pos.y - this.height / 2),
+            Math.round(this.x - this.width / 2),
+            Math.round(this.y - this.height / 2),
             this.width,
             this.height
         );
