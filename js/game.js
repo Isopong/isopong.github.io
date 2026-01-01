@@ -3,75 +3,64 @@ class Game {
         this.canvas = canvas;
         this.ctx = canvas.getContext("2d");
 
-        this.ctx.imageSmoothingEnabled = false;
+        this.camera = new Camera();
 
-        // Table: only playable surface
-        this.table = { x:160, y:120, width:480, height:240 };
+        this.width = canvas.width;
+        this.height = canvas.height;
+
+        // Table (surface only — no legs)
+        this.table = {
+            x: this.width / 2 - 200,
+            y: this.height / 2 - 100,
+            width: 400,
+            height: 200
+        };
 
         this.ball = new Ball(this.table);
         this.leftPaddle = new Paddle("left", this.table);
         this.rightPaddle = new Paddle("right", this.table);
 
-        this.camera = new Camera(this.table);
-
-        this.lastTime = performance.now();
-
-        window.game = this; // global reference for paddle AI
+        window.game = this; // debug / AI access
     }
 
     update(dt) {
+        this.ball.update(dt, this.leftPaddle, this.rightPaddle);
         this.leftPaddle.update(dt);
         this.rightPaddle.update(dt);
-        this.ball.update(dt);
-
-        // Paddle collisions
-        this.ball.checkPaddleCollision(this.leftPaddle);
-        this.ball.checkPaddleCollision(this.rightPaddle);
-
-        // Net collision
-        if (
-            this.ball.z > 0.49 &&
-            this.ball.z < 0.51 &&
-            this.ball.y < this.table.y + 8
-        ) {
-            this.ball.vz *= -0.3;
-            this.ball.vy *= 0.6;
-        }
-
-        // Ball leaves table
-        if (!this.ball.isOverTable()) this.ball.leaveTable();
-
-        this.camera.update(this.ball);
     }
 
     draw() {
         const ctx = this.ctx;
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        this.camera.apply(ctx);
+        // ✅ Reset camera safely
+        this.camera.reset(ctx);
 
-        // Draw table
-        ctx.fillStyle = "#228B22";
-        ctx.fillRect(this.table.x, this.table.y, this.table.width, this.table.height);
+        // Background
+        ctx.fillStyle = "#4aa3df";
+        ctx.fillRect(0, 0, this.width, this.height);
 
-        // Draw shadow if over table
-        this.ball.drawShadow(ctx);
+        // Table surface
+        ctx.fillStyle = "#2ecc71";
+        ctx.fillRect(
+            this.table.x,
+            this.table.y,
+            this.table.width,
+            this.table.height
+        );
 
         this.leftPaddle.draw(ctx);
         this.rightPaddle.draw(ctx);
         this.ball.draw(ctx);
-
-        this.camera.reset(ctx);
     }
 
-    loop() {
-        const now = performance.now();
-        const dt = Math.min((now - this.lastTime)/1000, 0.016);
-        this.lastTime = now;
+    loop(timestamp) {
+        if (!this.lastTime) this.lastTime = timestamp;
+        const dt = (timestamp - this.lastTime) / 1000;
+        this.lastTime = timestamp;
 
         this.update(dt);
         this.draw();
 
-        requestAnimationFrame(()=>this.loop());
+        requestAnimationFrame(this.loop.bind(this));
     }
 }
