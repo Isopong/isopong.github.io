@@ -1,35 +1,41 @@
 class Paddle {
-    constructor(x, isAI = false) {
-        this.x = x;
+    constructor() {
+        this.x = 120; // starting position
         this.y = 270;
         this.width = 16;
         this.height = 96;
-        this.speed = 400;
-        this.dy = 0;
-        this.isAI = isAI;
 
         this.image = new Image();
         this.image.src = "assets/sprites/paddle.png";
+
+        // For tracking mouse
+        this.targetX = this.x;
+        this.targetY = this.y;
+
+        // Listen to mouse move
+        window.addEventListener("mousemove", (e) => {
+            const rect = e.target.getBoundingClientRect();
+            this.targetX = e.clientX - rect.left;
+            this.targetY = e.clientY - rect.top;
+        });
     }
 
-    update(dt, ball, inputUp = false, inputDown = false) {
-        this.dy = 0;
+    update(dt) {
+        // Smoothly follow cursor
+        const speed = 1000; // pixels/sec
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
 
-        if (this.isAI) {
-            // Simple AI: move toward ball's Y position
-            let diff = ball.y - this.y;
-            let maxSpeed = 300; // pixels/sec
-            this.dy = Math.max(Math.min(diff * 5 * dt, maxSpeed), -maxSpeed);
-        } else {
-            if (inputUp) this.dy = -this.speed;
-            if (inputDown) this.dy = this.speed;
-        }
+        this.x += Math.max(Math.min(dx, speed * dt), -speed * dt);
+        this.y += Math.max(Math.min(dy, speed * dt), -speed * dt);
 
-        this.y += this.dy * dt;
-
-        // Clamp inside table (assumes table height 200, y offset 170)
+        // Clamp to table bounds
+        const left = 160 + this.width / 2;
+        const right = 800 - this.width / 2;
         const top = 80 + this.height / 2;
         const bottom = 460 - this.height / 2;
+
+        this.x = Math.max(left, Math.min(right, this.x));
         this.y = Math.max(top, Math.min(bottom, this.y));
     }
 
