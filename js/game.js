@@ -1,82 +1,53 @@
 class Game {
-  constructor(canvas) {
-    this.ctx = canvas.getContext("2d");
+    constructor(canvas) {
+        this.ctx = canvas.getContext("2d");
+        this.canvas = canvas;
 
-    this.table = new Table(canvas);
+        this.table = new Table(canvas);
 
-    this.ball = {
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-      z: 120,
-      vx: 40,
-      vy: 20,
-      vz: 0,
-      radius: 6
-    };
+        this.ball = new Ball(
+            this.table.centerX,
+            this.table.centerY
+        );
 
-    this.gravity = -1200;
-    this.bounceLoss = 0.82;
-    this.lastTime = performance.now();
-  }
+        // Place paddle on LEFT side
+        this.paddle = new Paddle(
+            this.table.minX - 30,
+            this.table.centerY
+        );
 
-  update(dt) {
-    const b = this.ball;
+        this.mouse = { x: 0, y: 0 };
 
-    // Integrate motion
-    b.vz += this.gravity * dt;
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
-    b.z += b.vz * dt;
+        canvas.addEventListener("mousemove", e => {
+            const rect = canvas.getBoundingClientRect();
+            this.mouse.x = e.clientX - rect.left;
+            this.mouse.y = e.clientY - rect.top;
+        });
 
-    // Bounce only if over table
-    if (b.z <= 0 && this.table.contains(b.x, b.y)) {
-      b.z = 0;
-      b.vz = -b.vz * this.bounceLoss;
-    }
-  }
-
-  draw() {
-    const ctx = this.ctx;
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-    this.table.draw(ctx);
-
-    // Shadow (ONLY if over table)
-    if (this.table.contains(this.ball.x, this.ball.y)) {
-      ctx.fillStyle = "rgba(0,0,0,0.25)";
-      ctx.beginPath();
-      ctx.ellipse(
-        this.ball.x,
-        this.ball.y,
-        8,
-        4,
-        0,
-        0,
-        Math.PI * 2
-      );
-      ctx.fill();
+        this.lastTime = performance.now();
     }
 
-    // Ball
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(
-      this.ball.x,
-      this.ball.y - this.ball.z * 0.25,
-      this.ball.radius,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-  }
+    loop() {
+        const now = performance.now();
+        const dt = (now - this.lastTime) / 1000;
+        this.lastTime = now;
 
-  loop = (time) => {
-    const dt = Math.min((time - this.lastTime) / 1000, 0.016);
-    this.lastTime = time;
+        this.update(dt);
+        this.draw();
 
-    this.update(dt);
-    this.draw();
+        requestAnimationFrame(() => this.loop());
+    }
 
-    requestAnimationFrame(this.loop);
-  };
+    update(dt) {
+        this.paddle.update(this.mouse);
+        this.ball.update(dt, this.table);
+    }
+
+    draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.table.draw(this.ctx);
+        this.ball.draw(this.ctx);
+        this.paddle.draw(this.ctx);
+    }
 }
