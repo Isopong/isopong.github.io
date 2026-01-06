@@ -1,36 +1,40 @@
+// js/table.js
 class Table {
-  constructor(canvas) {
-    this.canvas = canvas;
+    constructor(cx, cy) {
+        const PPM = 100;
 
-    // Scale factor for screen
-    this.scale = 140;
+        this.centerX = cx;
+        this.centerY = cy;
 
-    this.width = 1.525 * this.scale;
-    this.height = 2.74 * this.scale;
+        // REAL table dimensions
+        this.length = 2.74 * PPM;   // X axis
+        this.width  = 1.525 * PPM;  // Y axis
 
-    this.x = (canvas.width - this.width) / 2;
-    this.y = (canvas.height - this.height) / 2;
-  }
+        this.minX = cx - this.length / 2;
+        this.maxX = cx + this.length / 2;
 
-  draw(ctx) {
-    ctx.fillStyle = "#22c55e";
-    ctx.fillRect(this.x, this.y, this.width, this.height);
+        this.minY = cy - this.width / 2;
+        this.maxY = cy + this.width / 2;
 
-    // Net
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y + this.height / 2);
-    ctx.lineTo(this.x + this.width, this.y + this.height / 2);
-    ctx.stroke();
-  }
+        this.surfaceZ = 0;
+    }
 
-  contains(x, y) {
-    return (
-      x >= this.x &&
-      x <= this.x + this.width &&
-      y >= this.y &&
-      y <= this.y + this.height
-    );
-  }
+    contains(x, y) {
+        return (
+            x >= this.minX &&
+            x <= this.maxX &&
+            y >= this.minY &&
+            y <= this.maxY
+        );
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = "#1f6b4f"; // professional table green
+        ctx.fillRect(
+            this.minX,
+            this.minY,
+            this.length,
+            this.width
+        );
+    }
 }
